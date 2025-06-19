@@ -24,10 +24,11 @@ function getHistory(jid) {
     return memory[jid] ? [...memory[jid]] : [];
 }
 
-function shouldRespond(isGroup) {
-    const probability = isGroup ? RESPONSE_PROBABILITY_GROUP : RESPONSE_PROBABILITY_PRIVATE;
-    return Math.random() < probability;
+function addUserMessage(jid, content) {
+    saveMessage(jid, 'user', content);
 }
+
+
 
 function shouldRespond(isGroup, probability = RESPONSE_PROBABILITY) {
     if(isGroup){
@@ -36,9 +37,11 @@ function shouldRespond(isGroup, probability = RESPONSE_PROBABILITY) {
     return true;
 }
 
-async function askChatGPTWithMemory(jid, message) {
+async function askChatGPTWithMemory(jid, message = null) {
     const isGroup = jid.endsWith('@g.us');
-    saveMessage(jid, 'user', message);
+    if (message) {
+        saveMessage(jid, 'user', message);
+    }
 
     if (!shouldRespond(isGroup)) {
         console.log(`🛑 Não respondeu ${jid} — caiu fora na roleta`);
@@ -71,4 +74,4 @@ async function askChatGPTWithMemory(jid, message) {
     }
 }
 
-module.exports = { askChatGPTWithMemory };
+module.exports = { askChatGPTWithMemory, addUserMessage };

@@ -1,4 +1,4 @@
-const { askChatGPTWithMemory } = require('../services/openaiService');
+const { askChatGPTWithMemory, addUserMessage } = require('../services/openaiService');
 const { transcribeAudio } = require('../services/transcriptionService');
 const { analyzeImageWithOpenAI } = require('../services/imageService');
 const { sendSticker } = require('../services/stickerService');
@@ -7,6 +7,13 @@ const allowedGroups = require('../configs/allowedGroups');
 const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
+
+const groupCounters = {};
+const groupThresholds = {};
+
+function getRandomGroupThreshold() {
+    return Math.floor(Math.random() * 7) + 2; // 2 to 8 messages
+}
 
 function getRandomDelay(min = 2000, max = 30000) {
     return Math.floor(Math.random() * (max - min + 1)) + min;
@@ -111,7 +118,27 @@ async function handleMessage(sock, msg) {
 
     console.log(`📥 Mensagem de ${from}: ${text}`);
 
-    const resposta = await askChatGPTWithMemory(from, text);
+    let resposta;
+
+    if (isGroup) {
+        addUserMessage(from, text);
+        groupCounters[from] = (groupCounters[from] || 0) + 1;
+        if (!groupThresholds[from]) {
+            groupThresholds[from] = getRandomGroupThreshold();
+        }
+
+        if (groupCounters[from] < groupThresholds[from]) {
+            const restante = groupThresholds[from] - groupCounters[from];
+            console.log(`⌛ Aguardando mais ${restante} mensagens para responder no grupo ${from}`);
+            return;
+        }
+
+        groupCounters[from] = 0;
+        groupThresholds[from] = getRandomGroupThreshold();
+        resposta = await askChatGPTWithMemory(from);
+    } else {
+        resposta = await askChatGPTWithMemory(from, text);
+    }
 
     if (resposta) {
         const stickerMatch = resposta.match(/\[sticker:(.*?)]/i);
