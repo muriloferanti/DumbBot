@@ -37,12 +37,12 @@ async function sendTypingAndReply(sock, msg, text) {
 
         const hasMessage = msg.message && Object.keys(msg.message).length > 0;
 
-        const messageOptions = shouldReply && hasMessage
-            ? { text: text, quoted: msg }
-            : { text: text };
+        const messageOptions =
+            shouldReply && hasMessage
+                ? { text: text, quoted: msg }
+                : { text: text };
 
         await sock.sendMessage(jid, messageOptions);
-
     } catch (error) {
         console.error('❌ Erro simulando digitação:', error);
     }
@@ -82,7 +82,12 @@ async function handleMessage(sock, msg) {
         console.log('🎧 Recebeu um áudio');
 
         const filePath = path.join(__dirname, `../temp/${Date.now()}.mp3`);
-        const stream = await downloadMediaMessage(msg, 'buffer', {}, { logger: console, sock });
+        const stream = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { logger: console, sock },
+        );
         fs.writeFileSync(filePath, stream);
 
         try {
@@ -90,7 +95,11 @@ async function handleMessage(sock, msg) {
             console.log(`📝 Transcrição: ${text}`);
         } catch (err) {
             console.error('❌ Erro na transcrição:', err);
-            await sendTypingAndReply(sock, msg, 'Não consegui entender o áudio, tenta de novo.');
+            await sendTypingAndReply(
+                sock,
+                msg,
+                'Não consegui entender o áudio, tenta de novo.',
+            );
             fs.unlinkSync(filePath);
             return;
         }
@@ -102,7 +111,12 @@ async function handleMessage(sock, msg) {
         console.log('🖼️ Recebeu uma imagem');
 
         const filePath = path.join(__dirname, `../temp/${Date.now()}.jpg`);
-        const stream = await downloadMediaMessage(msg, 'buffer', {}, { logger: console, sock });
+        const stream = await downloadMediaMessage(
+            msg,
+            'buffer',
+            {},
+            { logger: console, sock },
+        );
         fs.writeFileSync(filePath, stream);
 
         try {
@@ -110,7 +124,11 @@ async function handleMessage(sock, msg) {
             console.log('🧠 Análise da imagem:', text);
         } catch (err) {
             console.error('❌ Erro analisando imagem:', err);
-            await sendTypingAndReply(sock, msg, 'Não consegui entender essa imagem aí não');
+            await sendTypingAndReply(
+                sock,
+                msg,
+                'Não consegui entender essa imagem aí não',
+            );
             fs.unlinkSync(filePath);
             return;
         }
