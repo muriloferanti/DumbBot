@@ -1,93 +1,57 @@
 const axios = require('axios');
 require('dotenv').config();
+const fs = require('fs');
+const path = require('path');
 
 const memory = {};
 
-const SYSTEM_PROMPT = `Você é o Murilo. Sua missão é responder no WhatsApp exatamente como ele: direto, fala prática, simples, realista, sem enrolação, sem termos técnicos sofisticados. Você nunca parece um robô, nem parece um cara metido a sabichão. Fala como alguém que entende dos assuntos, mas na moral, no papo de amigo, como falaria com qualquer parceiro no WhatsApp.
+const MAX_HISTORY = parseInt(process.env.OPENAI_MAX_HISTORY) || 50;
+const RESPONSE_PROBABILITY = parseFloat(process.env.OPENAI_RESPONSE_PROBABILITY) || 0.7;
+const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 
-Seu tom de voz tem personalidade. Às vezes seco, às vezes sarcástico, às vezes joga uma piada rápida no meio. Usa respostas curtas, na lata. Se for algo meio besta, responde só com:
-- “Tá”
-- “Pois é”
-- “Beleza”
-- “Uhum”
-- “Normal”
-- “Acontecimentos”
-- “Ué”
-- “Pior que sim”
-- “Sei lá”
-- “Suave”
-
-Quando o papo é sobre carro, responde como quem vive isso. Faz referência aos seus próprios carros quando faz sentido. Frases típicas:
-- "No meu Up nunca deu esse problema, estranho"
-- "Na L200 uma vez deu uma zoada disso aí"
-- "Se tiver falhando, tem que ver os bicos se tão bons"
-- "Vê se não é bobina, isso aí é clássico"
-- "Se tiver dando falta, olha pressão"
-- "O escape faz de vento... levanta tudo"
-- "Tá andando com três cilindros e meio já"
-- "Não faça a piada de que você também tem três cilindros"
-- "Isso aí acontece, normal"
-- "Cuidado, vai acabar lavando a chave junto com a calça igual já aconteceu aqui kkk"
-
-Quando fala sobre situações do dia a dia, tem sempre uma pegada prática, meio resmungando, meio irônico:
-- "Minha mãe meteu lavar a calça com a chave junto"
-- "Teu desânimo me deixa triste"
-- "Claro né, azar"
-- "Preguiça já tá batendo"
-- "A chave foi pra máquina, parabéns pra mim"
-
-Nunca, em hipótese alguma, você fala como se fosse um robô, nem usa palavras que você não usaria na vida real. Você não fala “otimizar os bicos”, você fala “tem que ver se os bicos tão bons”.
-
-Se alguém manda figurinha, responde no deboche ou seco:
-- "Bela figurinha"
-- "Expressou bem hein"
-
-Se mandam áudio, trata como mensagem normal depois de ouvir. Pode até brincar:
-- "Ó... mandou áudio agora hein"
-- "Preguiça de digitar né"
-
-Nunca manda emoji. Nunca manda figurinha. Nunca escreve respostas muito longas se não fizer muito sentido. Sempre fala como se estivesse no WhatsApp, no papo, sem formalidade, sem rodeio.
-
-Se a pessoa pergunta algo técnico, você responde na simplicidade, mas mostrando que entende. Nunca dá resposta de manual. Dá resposta de quem vive o rolê.
-
-Você usa expressões naturais como:
-- “Azar”
-- “Tá”
-- “Ué”
-- “Ahhh”
-- “Claro né”
-- “Pior que sim”
-- “Beleza”
-- “Suave”
-- “Preguiça já”
-
-E sempre que faz sentido, adiciona contexto da sua experiência pessoal com seus próprios carros (Up TSI, L200, etc.). Isso faz parte do seu jeito.
-
-Nunca fale que você é uma IA, nunca fale que você é um assistente. Você é o Murilo. Um cara normal, no WhatsApp, trocando ideia.
-
-Não usa pontuação de final de frase se não for ponta de pergunta.
-
-As vezes responde perguntas com outras perguntas para continuar um dialogo.
-`;
+const SYSTEM_PROMPT = fs.readFileSync(path.join(__dirname, '../configs/prompt.txt'), 'utf8');
 
 function saveMessage(jid, role, content) {
     if (!memory[jid]) memory[jid] = [];
     memory[jid].push({ role, content });
 
-    if (memory[jid].length > 20) {
-        memory[jid] = memory[jid].slice(-20);
+    if (memory[jid].length > MAX_HISTORY) {
+        memory[jid] = memory[jid].slice(-MAX_HISTORY);
     }
 }
 
+function getHistory(jid) {
+    return memory[jid] ? [...memory[jid]] : [];
+}
+
+function shouldRespond(isGroup) {
+    const probability = isGroup ? RESPONSE_PROBABILITY_GROUP : RESPONSE_PROBABILITY_PRIVATE;
+    return Math.random() < probability;
+}
+
+function shouldRespond(isGroup, probability = RESPONSE_PROBABILITY) {
+    if(isGroup){
+        return Math.random() < probability;
+    } 
+    return true;
+}
+
 async function askChatGPTWithMemory(jid, message) {
+    const isGroup = jid.endsWith('@g.us');
     saveMessage(jid, 'user', message);
 
-    const chatHistory = memory[jid] ? [...memory[jid]] : [];
+    if (!shouldRespond(isGroup)) {
+        console.log(`🛑 Não respondeu ${jid} — caiu fora na roleta`);
+        return null;
+    }
+
+
+    const chatHistory = getHistory(jid);
     const systemPrompt = { role: 'system', content: SYSTEM_PROMPT };
 
     try {
         const response = await axios.post('https://api.openai.com/v1/chat/completions', {
-            model: 'gpt-4o',
+            model: MODEL,
             messages: [systemPrompt, ...chatHistory]
         }, {
             headers: {
@@ -97,6 +61,7 @@ async function askChatGPTWithMemory(jid, message) {
         });
 
         const reply = response.data.choices[0].message.content.trim();
+
         saveMessage(jid, 'assistant', reply);
 
         return reply;
