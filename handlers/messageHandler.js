@@ -81,7 +81,9 @@ async function handleMessage(sock, msg) {
     if (messageType === 'audioMessage') {
         console.log('🎧 Recebeu um áudio');
 
-        const filePath = path.join(__dirname, `../temp/${Date.now()}.mp3`);
+        const tempDir = path.join(__dirname, '../temp');
+        fs.mkdirSync(tempDir, { recursive: true });
+        const filePath = path.join(tempDir, `${Date.now()}.mp3`);
         const stream = await downloadMediaMessage(
             msg,
             'buffer',
@@ -110,7 +112,9 @@ async function handleMessage(sock, msg) {
     if (messageType === 'imageMessage') {
         console.log('🖼️ Recebeu uma imagem');
 
-        const filePath = path.join(__dirname, `../temp/${Date.now()}.jpg`);
+        const tempDir = path.join(__dirname, '../temp');
+        fs.mkdirSync(tempDir, { recursive: true });
+        const filePath = path.join(tempDir, `${Date.now()}.jpg`);
         const stream = await downloadMediaMessage(
             msg,
             'buffer',
