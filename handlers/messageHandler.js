@@ -12,7 +12,7 @@ const groupCounters = {};
 const groupThresholds = {};
 
 function getRandomGroupThreshold() {
-    return Math.floor(Math.random() * 7) + 2; // 2 to 8 messages
+    return Math.floor(Math.random() * 3) + 2; // 2 to 4 messages
 }
 
 function getRandomDelay(min = 2000, max = 30000) {
@@ -57,7 +57,10 @@ async function handleMessage(sock, msg) {
     const messageType = Object.keys(content)[0];
 
     const quotedParticipant = content[messageType]?.contextInfo?.participant;
-    const isReplyToBot = quotedParticipant === sock.user?.id;
+    const getBaseId = (jid) => jid?.split(':')[0];
+    const isReplyToBot =
+        quotedParticipant &&
+        getBaseId(quotedParticipant) === getBaseId(sock.user?.id);
 
     const isGroup = from.endsWith('@g.us');
     const isAllowed =
