@@ -28,7 +28,10 @@ async function analyzeImageWithOpenAI(filePath) {
                             },
                             {
                                 type: 'image_url',
-                                image_url: `data:image/jpeg;base64,${imageData}`,
+                                image_url: {
+                                    url: `data:image/jpeg;base64,${imageData}`,
+                                    detail: 'auto',
+                                },
                             },
                         ],
                     },
