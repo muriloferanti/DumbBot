@@ -112,19 +112,15 @@ async function handleMessage(sock, msg) {
     if (messageType === 'imageMessage') {
         console.log('🖼️ Recebeu uma imagem');
 
-        const tempDir = path.join(__dirname, '../temp');
-        fs.mkdirSync(tempDir, { recursive: true });
-        const filePath = path.join(tempDir, `${Date.now()}.jpg`);
-        const stream = await downloadMediaMessage(
+        const buffer = await downloadMediaMessage(
             msg,
             'buffer',
             {},
             { logger: console, sock },
         );
-        fs.writeFileSync(filePath, stream);
 
         try {
-            text = await analyzeImageWithOpenAI(filePath);
+            text = await analyzeImageWithOpenAI(buffer);
             console.log('🧠 Análise da imagem:', text);
         } catch (err) {
             console.error('❌ Erro analisando imagem:', err);
@@ -133,11 +129,8 @@ async function handleMessage(sock, msg) {
                 msg,
                 'Não consegui entender essa imagem aí não',
             );
-            fs.unlinkSync(filePath);
             return;
         }
-
-        fs.unlinkSync(filePath);
     }
 
     if (messageType === 'stickerMessage') {
