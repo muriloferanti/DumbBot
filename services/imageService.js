@@ -29,7 +29,7 @@ async function analyzeImageWithOpenAI(filePath) {
                 Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
                 'Content-Type': 'application/json',
             },
-        }
+        },
     );
 
     return response.data.choices[0].message.content.trim();
