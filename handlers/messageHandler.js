@@ -37,8 +37,15 @@ async function sendTypingAndReply(sock, msg, text) {
 
         const hasMessage = msg.message && Object.keys(msg.message).length > 0;
 
-        const messageOptions =
-            shouldReply && hasMessage
+    let content = msg.message;
+    if (content.ephemeralMessage) {
+        content = content.ephemeralMessage.message;
+    }
+    const messageType = Object.keys(content)[0];
+
+    const quotedParticipant = content[messageType]?.contextInfo?.participant;
+    const isReplyToBot = quotedParticipant === sock.user?.id;
+        text = content.conversation || content.extendedTextMessage?.text;
                 ? { text: text, quoted: msg }
                 : { text: text };
 
@@ -101,7 +108,9 @@ async function handleMessage(sock, msg) {
         fs.unlinkSync(filePath);
     }
 
-    if (messageType === 'imageMessage') {
+    if (isReplyToBot) {
+        resposta = await askChatGPTWithMemory(from, text, true);
+    } else if (isGroup) {
         console.log('🖼️ Recebeu uma imagem');
 
         const filePath = path.join(__dirname, `../temp/${Date.now()}.jpg`);

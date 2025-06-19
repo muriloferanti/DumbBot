@@ -12,8 +12,8 @@ const MODEL = process.env.OPENAI_MODEL || 'gpt-4o';
 
 const SYSTEM_PROMPT = fs.readFileSync(
     path.join(__dirname, '../configs/prompt.txt'),
-    'utf8',
-);
+async function askChatGPTWithMemory(jid, message = null, force = false) {
+    if (!force && !shouldRespond(isGroup)) {
 
 function saveMessage(jid, role, content) {
     if (!memory[jid]) memory[jid] = [];
