@@ -8,6 +8,10 @@ const { downloadMediaMessage } = require('@whiskeysockets/baileys');
 const fs = require('fs');
 const path = require('path');
 
+const mentionKeyword = process.env.MENTION_KEYWORD
+    ? process.env.MENTION_KEYWORD.toLowerCase()
+    : null;
+
 const groupCounters = {};
 const groupThresholds = {};
 const lastStickerResponse = {};
@@ -154,9 +158,12 @@ async function handleMessage(sock, msg) {
 
     console.log(`📥 Mensagem de ${from}: ${text}`);
 
+    const isMention =
+        mentionKeyword && text.toLowerCase().includes(mentionKeyword);
+
     let resposta;
 
-    if (isReplyToBot) {
+    if (isReplyToBot || isMention) {
         resposta = await askChatGPTWithMemory(from, text, true);
     } else if (isGroup) {
         addUserMessage(from, text);
