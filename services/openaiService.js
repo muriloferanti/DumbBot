@@ -41,13 +41,13 @@ function shouldRespond(isGroup, probability = RESPONSE_PROBABILITY) {
     return true;
 }
 
-async function askChatGPTWithMemory(jid, message = null) {
+async function askChatGPTWithMemory(jid, message = null, force = false) {
     const isGroup = jid.endsWith('@g.us');
     if (message) {
         saveMessage(jid, 'user', message);
     }
 
-    if (!shouldRespond(isGroup)) {
+    if (!force && !shouldRespond(isGroup)) {
         console.log(`🛑 Não respondeu ${jid} — caiu fora na roleta`);
         return null;
     }

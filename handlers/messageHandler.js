@@ -50,7 +50,14 @@ async function sendTypingAndReply(sock, msg, text) {
 
 async function handleMessage(sock, msg) {
     const from = msg.key.remoteJid;
-    const messageType = Object.keys(msg.message)[0];
+    let content = msg.message;
+    if (content.ephemeralMessage) {
+        content = content.ephemeralMessage.message;
+    }
+    const messageType = Object.keys(content)[0];
+
+    const quotedParticipant = content[messageType]?.contextInfo?.participant;
+    const isReplyToBot = quotedParticipant === sock.user?.id;
 
     const isGroup = from.endsWith('@g.us');
     const isAllowed =
@@ -64,12 +71,8 @@ async function handleMessage(sock, msg) {
 
     let text;
 
-    if (
-        messageType === 'conversation' ||
-        messageType === 'extendedTextMessage'
-    ) {
-        text =
-            msg.message.conversation || msg.message.extendedTextMessage?.text;
+    if (messageType === 'conversation' || messageType === 'extendedTextMessage') {
+        text = content.conversation || content.extendedTextMessage?.text;
     }
 
     if (messageType === 'audioMessage') {
@@ -142,7 +145,9 @@ async function handleMessage(sock, msg) {
 
     let resposta;
 
-    if (isGroup) {
+    if (isReplyToBot) {
+        resposta = await askChatGPTWithMemory(from, text, true);
+    } else if (isGroup) {
         addUserMessage(from, text);
         groupCounters[from] = (groupCounters[from] || 0) + 1;
         if (!groupThresholds[from]) {
