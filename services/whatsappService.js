@@ -1,4 +1,10 @@
-const { default: makeWASocket, useMultiFileAuthState, fetchLatestBaileysVersion, DisconnectReason, useQR } = require('@whiskeysockets/baileys');
+const {
+    default: makeWASocket,
+    useMultiFileAuthState,
+    fetchLatestBaileysVersion,
+    DisconnectReason,
+    useQR,
+} = require('@whiskeysockets/baileys');
 const qrcode = require('qrcode-terminal');
 const { handleMessage } = require('../handlers/messageHandler');
 
@@ -8,7 +14,7 @@ async function startWhatsappBot() {
 
     const sock = makeWASocket({
         version,
-        auth: state
+        auth: state,
     });
 
     sock.ev.on('creds.update', saveCreds);
@@ -22,13 +28,15 @@ async function startWhatsappBot() {
 
     sock.ev.on('connection.update', (update) => {
         const { connection, lastDisconnect, qr } = update;
-    
+
         if (qr) {
             qrcode.generate(qr, { small: true });
         }
-    
+
         if (connection === 'close') {
-            const shouldReconnect = lastDisconnect?.error?.output?.statusCode !== DisconnectReason.loggedOut;
+            const shouldReconnect =
+                lastDisconnect?.error?.output?.statusCode !==
+                DisconnectReason.loggedOut;
             if (shouldReconnect) {
                 startWhatsappBot();
             } else {
