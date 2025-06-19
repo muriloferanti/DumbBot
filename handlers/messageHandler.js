@@ -10,6 +10,7 @@ const path = require('path');
 
 const groupCounters = {};
 const groupThresholds = {};
+const lastStickerResponse = {};
 
 function getRandomGroupThreshold() {
     return Math.floor(Math.random() * 3) + 2; // 2 to 4 messages
@@ -135,7 +136,17 @@ async function handleMessage(sock, msg) {
 
     if (messageType === 'stickerMessage') {
         console.log('🤪 Recebeu uma figurinha');
+
+        const now = Date.now();
+        const lastTime = lastStickerResponse[from] || 0;
+
+        if (now - lastTime < 60000) {
+            console.log('⌛ Ignorando figurinha para evitar loop');
+            return;
+        }
+
         await sendSticker(sock, from, 'random');
+        lastStickerResponse[from] = now;
         return;
     }
 
